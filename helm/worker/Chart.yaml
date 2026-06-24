@@ -1,0 +1,6 @@
+apiVersion: v2
+name: youtube-to-text-unit
+description: YouTube transcript-to-text worker backed by RabbitMQ and a local Ollama LLM
+type: application
+version: 0.1.0
+appVersion: "latest"

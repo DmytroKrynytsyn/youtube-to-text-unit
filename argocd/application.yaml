@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: youtube-to-text-unit
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/DmytroKrynytsyn/youtube-to-text-unit
+    targetRevision: HEAD
+    path: helm/worker
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: youtube-to-text-unit
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

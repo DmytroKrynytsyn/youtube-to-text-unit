@@ -1,0 +1,16 @@
+image:
+  repository: dkrinitsyn/youtube-to-text-unit
+  pullPolicy: Always
+  tag: "0"
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+env:
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq.rabbitmq.svc.cluster.local/"
+
+namespace: youtube-to-text-unit
