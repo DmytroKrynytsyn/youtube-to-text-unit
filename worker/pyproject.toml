@@ -8,6 +8,10 @@ dependencies = [
     "prometheus-fastapi-instrumentator==6.1.0",
     "aio-pika==9.4.3",
     "yt-dlp==2026.3.17",
+    "langgraph==1.2.6",
+    "langgraph-checkpoint-postgres==3.1.0",
+    "langchain-text-splitters==1.1.2",
+    "psycopg[binary,pool]==3.3.4",
 ]
 
 [build-system]

@@ -12,5 +12,8 @@ service:
 
 env:
   RABBITMQ_URL: "amqp://guest:guest@rabbitmq.rabbitmq.svc.cluster.local/"
+  CHUNK_SIZE_CHARS: "4500"
+  CHUNK_OVERLAP_CHARS: "400"
+  DB_SCHEMA: "youtube_to_text_unit"
 
 namespace: youtube-to-text-unit

@@ -3,7 +3,7 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 WORKDIR /build
 
 COPY worker/pyproject.toml .
-COPY worker/main.py ./worker/
+COPY worker/main.py worker/graph.py worker/queues.py worker/transcript.py ./worker/
 
 RUN uv build --wheel --out-dir /dist
 
