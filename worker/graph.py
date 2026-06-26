@@ -10,8 +10,8 @@ from prometheus_client import Counter, Histogram
 from worker import queues
 from worker.transcript import build_transcript_context
 
-CHUNK_SIZE_CHARS = int(os.getenv("CHUNK_SIZE_CHARS", "4500"))
-CHUNK_OVERLAP_CHARS = int(os.getenv("CHUNK_OVERLAP_CHARS", "400"))
+CHUNK_SIZE_CHARS = int(os.getenv("CHUNK_SIZE_CHARS", "480"))
+CHUNK_OVERLAP_CHARS = int(os.getenv("CHUNK_OVERLAP_CHARS", "50"))
 MAX_RETRIES = 1
 
 youtube_tasks_total = Counter(
