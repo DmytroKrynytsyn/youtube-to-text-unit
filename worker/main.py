@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import uuid
 import asyncio
 import logging
@@ -40,6 +41,7 @@ def log(event: str, **kwargs):
 
 async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:
     async with message.process():
+        log("youtube_task_received", correlation_id=message.correlation_id)
         body = json.loads(message.body)
         chat_id = body.get("chat_id")
         url = body.get("url")
@@ -61,6 +63,7 @@ async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:
             "retries": {},
             "essay": None,
             "error": None,
+            "started_at": time.time(),
         }
 
         try:
@@ -79,6 +82,7 @@ async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:
 
 async def on_llm_response(message: aio_pika.IncomingMessage) -> None:
     async with message.process():
+        log("llm_response_received", correlation_id=message.correlation_id)
         try:
             body = json.loads(message.body)
         except Exception as e:

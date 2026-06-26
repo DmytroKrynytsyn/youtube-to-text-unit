@@ -1,9 +1,11 @@
 import os
+import time
 from typing import TypedDict
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import interrupt
+from prometheus_client import Counter, Histogram
 
 from worker import queues
 from worker.transcript import build_transcript_context
@@ -11,6 +13,17 @@ from worker.transcript import build_transcript_context
 CHUNK_SIZE_CHARS = int(os.getenv("CHUNK_SIZE_CHARS", "4500"))
 CHUNK_OVERLAP_CHARS = int(os.getenv("CHUNK_OVERLAP_CHARS", "400"))
 MAX_RETRIES = 1
+
+youtube_tasks_total = Counter(
+    "youtube_tasks_total",
+    "Total youtube-to-text tasks completed",
+    ["status"],
+)
+
+youtube_task_duration_seconds = Histogram(
+    "youtube_task_duration_seconds",
+    "End-to-end youtube-to-text task duration in seconds (fetch + chunk cleanup + essay)",
+)
 
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=CHUNK_SIZE_CHARS,
@@ -98,6 +111,7 @@ class JobState(TypedDict):
     retries: dict[str, int]
     essay: str | None
     error: str | None
+    started_at: float
 
 
 async def fetch_and_split(state: JobState) -> JobState:
@@ -153,7 +167,11 @@ async def await_chunk(state: JobState) -> JobState:
         key = str(idx)
         attempts = state["retries"].get(key, 0) + 1
         if attempts > MAX_RETRIES:
+            queues.log("chunk_failed", request_id=state["request_id"], chunk_index=idx,
+                       attempts=attempts, error=reply["error"])
             return {**state, "error": f"chunk {idx} failed after retry: {reply['error']}"}
+        queues.log("chunk_retry", request_id=state["request_id"], chunk_index=idx,
+                   attempt=attempts, error=reply["error"])
         await _dispatch_chunk(
             state["request_id"], state["chat_id"], state["title"], state["lang"],
             state["chunks"], idx, state["total_chunks"],
@@ -202,7 +220,11 @@ async def await_essay(state: JobState) -> JobState:
     if reply.get("error"):
         attempts = state["retries"].get("essay", 0) + 1
         if attempts > MAX_RETRIES:
+            queues.log("essay_failed", request_id=state["request_id"],
+                       attempts=attempts, error=reply["error"])
             return {**state, "error": f"essay generation failed after retry: {reply['error']}"}
+        queues.log("essay_retry", request_id=state["request_id"],
+                   attempt=attempts, error=reply["error"])
         await _dispatch_essay(state)
         return {**state, "retries": {**state["retries"], "essay": attempts}}
 
@@ -218,6 +240,9 @@ def essay_router(state: JobState) -> str:
 
 
 async def finalize(state: JobState) -> JobState:
+    youtube_task_duration_seconds.observe(time.time() - state["started_at"])
+    youtube_tasks_total.labels(status="error" if state.get("error") else "success").inc()
+
     await queues.publish_telegram_response(
         state["chat_id"], state["request_id"],
         result=state.get("essay"), error=state.get("error"),
