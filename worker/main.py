@@ -4,6 +4,7 @@ import uuid
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from urllib.parse import quote
 
 import aio_pika
 from fastapi import FastAPI
@@ -132,7 +133,7 @@ async def lifespan(app: FastAPI):
 
     await setup_schema()
 
-    db_uri = f"{DATABASE_URL}?options=-c search_path={DB_SCHEMA}"
+    db_uri = f"{DATABASE_URL}?options={quote(f'-c search_path={DB_SCHEMA}')}"
     checkpointer_cm = AsyncPostgresSaver.from_conn_string(db_uri)
     checkpointer = await checkpointer_cm.__aenter__()
     await checkpointer.setup()
