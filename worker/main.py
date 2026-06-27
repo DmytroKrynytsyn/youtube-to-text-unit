@@ -38,7 +38,8 @@ compiled_graph = None
 
 async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:
     async with message.process():
-        log("youtube_task_received", correlation_id=message.correlation_id)
+        log("youtube_task_received", queue=queues.TASK_QUEUE, correlation_id=message.correlation_id,
+            size_bytes=len(message.body))
         body = json.loads(message.body)
         chat_id = body.get("chat_id")
         url = body.get("url")
@@ -81,7 +82,8 @@ async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:
 
 async def on_llm_response(message: aio_pika.IncomingMessage) -> None:
     async with message.process():
-        log("llm_response_received", correlation_id=message.correlation_id)
+        log("llm_response_received", queue=queues.LLM_RESPONSE_QUEUE, correlation_id=message.correlation_id,
+            size_bytes=len(message.body))
         try:
             body = json.loads(message.body)
         except Exception as e:

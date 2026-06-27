@@ -21,31 +21,32 @@ def log(event: str, **kwargs):
 
 
 async def publish_telegram_response(chat_id: int, request_id: str, result: str | None, error: str | None):
-    body = json.dumps({
+    body_bytes = json.dumps({
         "chat_id": chat_id,
         "result": result,
         "error": error,
         "request_id": request_id,
-    })
+    }).encode()
 
     await rabbitmq_channel.default_exchange.publish(
         aio_pika.Message(
-            body=body.encode(),
+            body=body_bytes,
             correlation_id=request_id,
             delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
         ),
         routing_key=RESPONSE_QUEUE,
     )
 
-    log("telegram_response_published", request_id=request_id, chat_id=chat_id, has_error=bool(error))
+    log("telegram_response_published", queue=RESPONSE_QUEUE, request_id=request_id, chat_id=chat_id,
+        has_error=bool(error), size_bytes=len(body_bytes))
 
 
 async def publish_llm_request(queue_name: str, prompt: str, correlation_id: str, **passthrough):
-    body = json.dumps({"prompt": prompt, **passthrough})
+    body_bytes = json.dumps({"prompt": prompt, **passthrough}).encode()
 
     await rabbitmq_channel.default_exchange.publish(
         aio_pika.Message(
-            body=body.encode(),
+            body=body_bytes,
             correlation_id=correlation_id,
             delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
         ),
@@ -53,4 +54,4 @@ async def publish_llm_request(queue_name: str, prompt: str, correlation_id: str,
     )
 
     log("llm_request_published", queue=queue_name, correlation_id=correlation_id,
-        prompt_len=len(prompt), **passthrough)
+        prompt_len=len(prompt), size_bytes=len(body_bytes), **passthrough)
