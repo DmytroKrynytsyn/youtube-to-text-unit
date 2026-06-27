@@ -6,7 +6,7 @@ image:
 replicaCount: 1
 
 nodeSelector:
-  purpose: kappsdata1
+  purpose: kappsdata
 
 service:
   type: ClusterIP
