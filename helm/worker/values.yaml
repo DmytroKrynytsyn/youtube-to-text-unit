@@ -1,7 +1,7 @@
 image:
   repository: dkrinitsyn/youtube-to-text-unit
   pullPolicy: Always
-  tag: "20260627182121"
+  tag: "20260627182458"
 
 replicaCount: 1
 
