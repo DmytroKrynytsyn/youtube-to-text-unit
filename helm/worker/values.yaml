@@ -17,6 +17,8 @@ env:
   RABBITMQ_URL: "amqp://guest:guest@rabbitmq.rabbitmq.svc.cluster.local/"
   CHUNK_SIZE_CHARS: "480"
   CHUNK_OVERLAP_CHARS: "50"
+  MAX_ESSAY_INPUT_WORDS: "1000"
+  MAX_COMPRESS_ROUNDS: "3"
   DB_SCHEMA: "youtube_to_text_unit"
 
 namespace: youtube-to-text-unit

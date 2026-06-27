@@ -58,6 +58,8 @@ async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:
             "total_chunks": 0,
             "cleaned": {},
             "retries": {},
+            "round": 0,
+            "essay_input": None,
             "essay": None,
             "error": None,
             "started_at": time.time(),
