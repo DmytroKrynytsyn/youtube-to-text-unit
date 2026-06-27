@@ -4,9 +4,7 @@ from urllib.parse import urlparse, parse_qs
 import urllib.request
 import yt_dlp
 
-
-def log(event: str, **kwargs):
-    print(json.dumps({"event": event, **kwargs}, ensure_ascii=False), flush=True)
+from worker.queues import log
 
 
 def extract_video_id(url: str) -> str:

@@ -5,6 +5,9 @@ image:
 
 replicaCount: 1
 
+nodeSelector:
+  purpose: kappsdata1
+
 service:
   type: ClusterIP
   port: 80

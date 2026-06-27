@@ -119,6 +119,8 @@ async def fetch_and_split(state: JobState) -> JobState:
     chunks = splitter.split_text(transcript)
     total = len(chunks)
 
+    queues.log("transcript_split", request_id=state["request_id"], total_chunk_num=total)
+
     await queues.publish_telegram_response(
         state["chat_id"], state["request_id"],
         result=f"transcript obtained, split into {total} part(s) — cleaning up...",
@@ -140,6 +142,9 @@ async def fetch_and_split(state: JobState) -> JobState:
 
 
 async def _dispatch_chunk(request_id, chat_id, title, lang, chunks, chunk_index, total_chunks):
+    queues.log("chunk_dispatched", request_id=request_id,
+               chunk_num=chunk_index + 1, total_chunk_num=total_chunks)
+
     prompt = CHUNK_PROMPT_TEMPLATE.format(
         chunk_index=chunk_index + 1,
         total_chunks=total_chunks,

@@ -15,6 +15,7 @@ from langgraph.types import Command
 import psycopg
 
 from worker import queues
+from worker.queues import log
 from worker.graph import build_graph
 
 
@@ -33,10 +34,6 @@ rabbitmq_connection: aio_pika.RobustConnection = None
 checkpointer_cm = None
 checkpointer: AsyncPostgresSaver = None
 compiled_graph = None
-
-
-def log(event: str, **kwargs):
-    print(json.dumps({"event": event, **kwargs}, ensure_ascii=False), flush=True)
 
 
 async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:

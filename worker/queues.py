@@ -1,5 +1,6 @@
 import os
 import json
+import socket
 import aio_pika
 
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq.rabbitmq.svc.cluster.local/")
@@ -10,11 +11,13 @@ LLM_REQUEST_QUEUE_SAI = "llm_requests_sai"
 LLM_REQUEST_QUEUE_MAI = "llm_requests_mai"
 LLM_RESPONSE_QUEUE = "llm_responses"
 
+HOSTNAME = socket.gethostname()
+
 rabbitmq_channel: aio_pika.Channel = None
 
 
 def log(event: str, **kwargs):
-    print(json.dumps({"event": event, **kwargs}, ensure_ascii=False), flush=True)
+    print(json.dumps({"event": event, "hostname": HOSTNAME, **kwargs}, ensure_ascii=False), flush=True)
 
 
 async def publish_telegram_response(chat_id: int, request_id: str, result: str | None, error: str | None):
