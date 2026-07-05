@@ -9,6 +9,7 @@ TASK_QUEUE = "youtube-to-text-task"
 RESPONSE_QUEUE = "telegram-response-message"
 LLM_REQUEST_QUEUE_SAI = "llm_requests_sai"
 LLM_REQUEST_QUEUE_MAI = "llm_requests_mai"
+LLM_REQUEST_QUEUE_EXTERNAL = "llm_requests_external"
 LLM_RESPONSE_QUEUE = "llm_responses"
 
 HOSTNAME = socket.gethostname()

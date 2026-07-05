@@ -121,11 +121,57 @@ Rules:
 - Total response must be under 2000 characters — be dense, not verbose
 - Use plain text formatting with ** for bold headers"""
 
+EXTERNAL_ESSAY_PROMPT_TEMPLATE = """Here is a raw, auto-generated YouTube video transcript. It has not been cleaned up and may
+contain punctuation, casing, and ASR/caption errors, filler words, repeated words, and false starts.
+
+Title: {title}
+URL: {url}
+Language: {lang}
+
+Raw transcript:
+{transcript}
+
+---
+
+Your task is to extract all the information from this transcript and present it as a single coherent, structured,
+semi-academic essay.
+Respond clearly, in simple words, avoid long/complex constructions
+Respond in the same language as the transcript ({lang}).
+
+Follow this structure strictly:
+
+**Title**
+A sharp, informative title that captures the core idea of the whole video.
+
+**Introduction** (2-3 sentences)
+Briefly state what the video is about and why it matters.
+
+**Key Points**
+Use clearly labeled sections or a numbered list.
+Each point should be concise but complete — do not omit any important idea from the transcript.
+Crystallize, do not generalize.
+
+If the transcript mentions some list of things, like "top 5 of methods" or "10 tools for..." - make sure the list of the items is included in the answer.
+
+**Conclusion** (2-3 sentences)
+Summarize the main takeaway and its significance.
+
+**Source**
+{url}
+
+Rules:
+- Do not invent anything not present in the transcript
+- Do not pad with filler phrases
+- Preserve all specific facts, numbers, names, and examples
+- Total response must be under 2000 characters — be dense, not verbose
+- Use plain text formatting with ** for bold headers"""
+
 
 class JobState(TypedDict):
     request_id: str
     chat_id: int
     url: str
+    user_priority: int
     title: str
     lang: str
     chunks: list[str]
@@ -141,6 +187,28 @@ class JobState(TypedDict):
 
 async def fetch_and_split(state: JobState) -> JobState:
     title, lang, transcript = await build_transcript_context(state["url"])
+
+    if state.get("user_priority") == 1:
+        queues.log("transcript_fetched_priority", request_id=state["request_id"], user_priority=1)
+
+        await queues.publish_telegram_response(
+            state["chat_id"], state["request_id"],
+            result="transcript obtained, generating essay...",
+            error=None,
+        )
+
+        return {
+            **state,
+            "title": title,
+            "lang": lang,
+            "chunks": [],
+            "total_chunks": 0,
+            "cleaned": {},
+            "retries": {},
+            "round": 0,
+            "essay_input": transcript,
+        }
+
     chunks = splitter.split_text(transcript)
     total = len(chunks)
 
@@ -166,6 +234,10 @@ async def fetch_and_split(state: JobState) -> JobState:
         "round": 0,
         "essay_input": None,
     }
+
+
+def fetch_router(state: JobState) -> str:
+    return "dispatch_essay" if state.get("essay_input") is not None else "await_chunk"
 
 
 def _chunk_prompt(round_, **kwargs):
@@ -276,15 +348,26 @@ def combine_router(state: JobState) -> str:
 
 
 async def _dispatch_essay(state: JobState):
-    prompt = ESSAY_PROMPT_TEMPLATE.format(
-        total_chunks=state["total_chunks"],
-        title=state["title"],
-        url=state["url"],
-        lang=state["lang"],
-        joined_segments=state["essay_input"],
-    )
+    if state.get("user_priority") == 1:
+        queue_name = queues.LLM_REQUEST_QUEUE_EXTERNAL
+        prompt = EXTERNAL_ESSAY_PROMPT_TEMPLATE.format(
+            title=state["title"],
+            url=state["url"],
+            lang=state["lang"],
+            transcript=state["essay_input"],
+        )
+    else:
+        queue_name = queues.LLM_REQUEST_QUEUE_MAI
+        prompt = ESSAY_PROMPT_TEMPLATE.format(
+            total_chunks=state["total_chunks"],
+            title=state["title"],
+            url=state["url"],
+            lang=state["lang"],
+            joined_segments=state["essay_input"],
+        )
+
     await queues.publish_llm_request(
-        queues.LLM_REQUEST_QUEUE_MAI,
+        queue_name,
         prompt,
         correlation_id=f"{state['request_id']}:essay",
         request_id=state["request_id"],
@@ -345,7 +428,7 @@ def build_graph(checkpointer):
     g.add_node("finalize", finalize)
 
     g.add_edge(START, "fetch_and_split")
-    g.add_edge("fetch_and_split", "await_chunk")
+    g.add_conditional_edges("fetch_and_split", fetch_router, ["await_chunk", "dispatch_essay"])
     g.add_conditional_edges("await_chunk", chunk_router, ["await_chunk", "combine_chunks", "finalize"])
     g.add_conditional_edges("combine_chunks", combine_router, ["await_chunk", "dispatch_essay"])
     g.add_edge("dispatch_essay", "await_essay")

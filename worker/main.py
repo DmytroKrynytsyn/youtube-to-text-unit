@@ -44,6 +44,7 @@ async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:
         chat_id = body.get("chat_id")
         url = body.get("url")
         request_id = body.get("request_id") or str(uuid.uuid4())
+        user_priority = body.get("user_priority") or 2
 
         if not chat_id or not url:
             log("youtube_task_missing_fields", request_id=request_id)
@@ -53,6 +54,7 @@ async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:
             "request_id": request_id,
             "chat_id": chat_id,
             "url": url,
+            "user_priority": user_priority,
             "title": "",
             "lang": "en",
             "chunks": [],
@@ -70,7 +72,7 @@ async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:
             await compiled_graph.ainvoke(
                 initial_state, config={"configurable": {"thread_id": request_id}}
             )
-            log("youtube_task_started", chat_id=chat_id, url=url, request_id=request_id)
+            log("youtube_task_started", chat_id=chat_id, url=url, request_id=request_id, user_priority=user_priority)
         except ValueError as e:
             await queues.publish_telegram_response(chat_id, request_id, None, f"could not parse URL: {e}")
         except Exception as e:
@@ -118,6 +120,7 @@ async def setup_consumer():
     await channel.declare_queue(queues.RESPONSE_QUEUE, durable=True)
     await channel.declare_queue(queues.LLM_REQUEST_QUEUE_SAI, durable=True)
     await channel.declare_queue(queues.LLM_REQUEST_QUEUE_MAI, durable=True)
+    await channel.declare_queue(queues.LLM_REQUEST_QUEUE_EXTERNAL, durable=True)
 
     await channel.set_qos(prefetch_count=1)
     llm_response_queue = await channel.declare_queue(queues.LLM_RESPONSE_QUEUE, durable=True)
