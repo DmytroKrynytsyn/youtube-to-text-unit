@@ -1,3 +1,4 @@
+import asyncio
 import os
 import time
 from typing import TypedDict
@@ -13,6 +14,7 @@ from worker.transcript import build_transcript_context
 CHUNK_SIZE_CHARS = int(os.getenv("CHUNK_SIZE_CHARS", "480"))
 CHUNK_OVERLAP_CHARS = int(os.getenv("CHUNK_OVERLAP_CHARS", "50"))
 MAX_RETRIES = 1
+RETRY_BACKOFF_SECONDS = float(os.getenv("RETRY_BACKOFF_SECONDS", "2"))
 MAX_ESSAY_INPUT_WORDS = int(os.getenv("MAX_ESSAY_INPUT_WORDS", "1000"))
 MAX_COMPRESS_ROUNDS = int(os.getenv("MAX_COMPRESS_ROUNDS", "3"))
 
@@ -240,6 +242,16 @@ def fetch_router(state: JobState) -> str:
     return "dispatch_essay" if state.get("essay_input") is not None else "await_chunk"
 
 
+def _schedule_retry(coro):
+    """Fire-and-forget: wait out a backoff, then redispatch, without blocking
+    the current message's ack (the RabbitMQ channel runs prefetch_count=1,
+    so a blocking sleep here would stall delivery of unrelated messages)."""
+    async def _run():
+        await asyncio.sleep(RETRY_BACKOFF_SECONDS)
+        await coro
+    asyncio.create_task(_run())
+
+
 def _chunk_prompt(round_, **kwargs):
     template = CHUNK_PROMPT_TEMPLATE if round_ == 0 else RECOMPRESS_PROMPT_TEMPLATE
     return template.format(**kwargs)
@@ -293,10 +305,10 @@ async def await_chunk(state: JobState) -> JobState:
         queues.log("chunk_retry", request_id=state["request_id"], round=state["round"],
                    chunk_num=idx, total_chunk_num=state["total_chunks"],
                    attempt=attempts, error=reply["error"])
-        await _dispatch_chunk(
+        _schedule_retry(_dispatch_chunk(
             state["request_id"], state["chat_id"], state["title"], state["lang"],
             state["chunks"], idx, state["total_chunks"], round_=state["round"],
-        )
+        ))
         return {**state, "retries": {**state["retries"], key: attempts}}
 
     return {**state, "cleaned": {**state["cleaned"], idx: reply["result"]}}
@@ -393,7 +405,7 @@ async def await_essay(state: JobState) -> JobState:
             return {**state, "error": f"essay generation failed after retry: {reply['error']}"}
         queues.log("essay_retry", request_id=state["request_id"], round=state["round"],
                    total_chunk_num=state["total_chunks"], attempt=attempts, error=reply["error"])
-        await _dispatch_essay(state)
+        _schedule_retry(_dispatch_essay(state))
         return {**state, "retries": {**state["retries"], "essay": attempts}}
 
     return {**state, "essay": reply["result"]}
