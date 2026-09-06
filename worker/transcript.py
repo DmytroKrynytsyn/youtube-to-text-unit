@@ -18,49 +18,38 @@ def extract_video_id(url: str) -> str:
     raise ValueError(f"Could not extract video ID from URL: {url}")
 
 
-def fetch_video_info(url: str) -> tuple[str, str]:
-    """Returns (title, language_code)."""
+def _extract_info(url: str) -> dict | None:
+    """Single yt-dlp extraction, shared by both title/lang lookup and caption lookup
+    so a job only hits YouTube's info endpoint once instead of twice."""
     try:
         ydl_opts = {
-            "quiet": True,
             "skip_download": True,
+            "quiet": True,
             "no_warnings": True,
             "ignore_errors": True,
-            "extract_flat": "in_playlist",
-            "format": None,
         }
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            if info is None:
-                log("yt_dlp_no_info", url=url)
-                return "Unknown Title", "en"
-            title = info.get("title") or "Unknown Title"
-            lang = info.get("language") or info.get("default_audio_language") or "en"
-            lang = lang.split("-")[0].lower()
-            log("yt_dlp_info_fetched", url=url, title=title, lang=lang)
-            return title, lang
+            return ydl.extract_info(url, download=False)
     except Exception as e:
         log("yt_dlp_error", url=url, error=str(e))
+        return None
+
+
+def _parse_video_info(info: dict | None, url: str) -> tuple[str, str]:
+    """Returns (title, language_code)."""
+    if info is None:
+        log("yt_dlp_no_info", url=url)
         return "Unknown Title", "en"
+    title = info.get("title") or "Unknown Title"
+    lang = info.get("language") or info.get("default_audio_language") or "en"
+    lang = lang.split("-")[0].lower()
+    log("yt_dlp_info_fetched", url=url, title=title, lang=lang)
+    return title, lang
 
 
-def fetch_transcript(video_id: str, lang: str) -> str:
+def _parse_transcript(info: dict | None, video_id: str, lang: str) -> str:
     log("transcript_fetch_start", video_id=video_id, lang=lang)
-    url = f"https://www.youtube.com/watch?v={video_id}"
     try:
-        # Match preferred language variants dynamically using wildcards
-        ydl_opts = {
-            "skip_download": True,
-            "subtitleslangs": ["orig", f"{lang}.*", "ru.*", "en.*", ".*-orig", ".*"],
-            "quiet": True,
-            "no_warnings": True,
-            "ignore_errors": True,
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-
         if not info:
             raise RuntimeError(f"Failed to extract info via yt-dlp for video {video_id}")
 
@@ -122,7 +111,8 @@ async def build_transcript_context(url: str) -> tuple[str, str, str]:
     loop = asyncio.get_event_loop()
 
     video_id = extract_video_id(url)
-    title, lang = await loop.run_in_executor(None, fetch_video_info, url)
-    transcript = await loop.run_in_executor(None, fetch_transcript, video_id, lang)
+    info = await loop.run_in_executor(None, _extract_info, url)
+    title, lang = _parse_video_info(info, url)
+    transcript = await loop.run_in_executor(None, _parse_transcript, info, video_id, lang)
 
     return title, lang, transcript
