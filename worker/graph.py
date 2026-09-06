@@ -136,7 +136,7 @@ Raw transcript:
 ---
 
 Your task is to extract all the information from this transcript and present it as a single coherent, structured,
-storytelled essay.
+story, in form of essay.
 Respond clearly, in simple words, avoid long/complex constructions
 Respond in the same language as the transcript ({lang}).
 
@@ -155,7 +155,7 @@ Crystallize, do not generalize.
 
 If the transcript mentions some list of things, like "top 5 of methods" or "10 tools for..." - make sure the list of the items is included in the answer.
 
-**Main story**
+**Main story (as much as needed to communiccate all the information)**
 
 **Conclusion** (2-3 sentences)
 Summarize the main takeaway and its significance.
