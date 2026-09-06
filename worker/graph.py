@@ -29,7 +29,6 @@ contain punctuation, casing, and ASR/caption errors, filler words, repeated word
 
 Title: {title}
 URL: {url}
-Language: {lang}
 
 Raw transcript:
 {transcript}
@@ -38,6 +37,9 @@ Raw transcript:
 
 Your task is to extract all the information from this transcript and present it as a single coherent, structured,
 story, in form of essay.
+
+Deduct actual language from the raw script, use it to generate the result text.
+
 Respond clearly, in simple words, avoid long/complex constructions
 Respond in the same language as the transcript ({lang}).
 
