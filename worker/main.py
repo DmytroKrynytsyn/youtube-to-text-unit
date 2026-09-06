@@ -57,11 +57,7 @@ async def on_youtube_task(message: aio_pika.IncomingMessage) -> None:
             "user_priority": user_priority,
             "title": "",
             "lang": "en",
-            "chunks": [],
-            "total_chunks": 0,
-            "cleaned": {},
             "retries": {},
-            "round": 0,
             "essay_input": None,
             "essay": None,
             "error": None,
@@ -118,8 +114,6 @@ async def setup_consumer():
     await task_queue.consume(on_youtube_task)
 
     await channel.declare_queue(queues.RESPONSE_QUEUE, durable=True)
-    await channel.declare_queue(queues.LLM_REQUEST_QUEUE_SAI, durable=True)
-    await channel.declare_queue(queues.LLM_REQUEST_QUEUE_MAI, durable=True)
     await channel.declare_queue(queues.LLM_REQUEST_QUEUE_EXTERNAL, durable=True)
 
     await channel.set_qos(prefetch_count=1)
