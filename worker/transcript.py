@@ -50,9 +50,11 @@ def _parse_video_info(info: dict | None, url: str) -> tuple[str, str]:
 def _parse_transcript(info: dict | None, video_id: str, lang: str) -> str:
     log("transcript_fetch_start", video_id=video_id, lang=lang)
     try:
+        if not info:
+            raise RuntimeError(f"Failed to extract info via yt-dlp for video {video_id}")
 
-        auto = {}
-        subtitles = {}
+        auto = info.get("automatic_captions", {})
+        subtitles = info.get("subtitles", {})
 
         # Priority fallback check to find any valid native language track matching our target
         caps = None
@@ -109,8 +111,8 @@ async def build_transcript_context(url: str) -> tuple[str, str, str]:
     loop = asyncio.get_event_loop()
 
     video_id = extract_video_id(url)
-    info = None # await loop.run_in_executor(None, _extract_info, url)
-    title, lang = "test", "en" #_parse_video_info(info, url)
+    info = await loop.run_in_executor(None, _extract_info, url)
+    title, lang = _parse_video_info(info, url)
     await asyncio.sleep(15)  # space out the yt-dlp info call and the caption download to ease YouTube-side rate limiting
     transcript = await loop.run_in_executor(None, _parse_transcript, info, video_id, lang)
 
