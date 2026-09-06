@@ -106,6 +106,7 @@ def _parse_transcript(info: dict | None, video_id: str, lang: str) -> str:
         raise RuntimeError(f"Could not fetch transcript for video {video_id}: {e}")
 
 
+
 async def build_transcript_context(url: str) -> tuple[str, str, str]:
     """Returns (title, lang, transcript)."""
     loop = asyncio.get_event_loop()
