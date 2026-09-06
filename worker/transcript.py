@@ -50,15 +50,28 @@ def _parse_video_info(info: dict | None, url: str) -> tuple[str, str]:
 def _parse_transcript(info: dict | None, video_id: str, lang: str) -> str:
     log("transcript_fetch_start", video_id=video_id, lang=lang)
     try:
-       
 
-        caps = []
-        all_tracks = {**auto, **subtitles}
-        orig_key = next((k for k in all_tracks.keys() if "orig" in k), None)
-        if orig_key:
-            caps = all_tracks[orig_key]
-        else:
-            caps = next(iter(subtitles.values()), None) or next(iter(auto.values()), None)
+        auto = {}
+        subtitles = {}
+
+        # Priority fallback check to find any valid native language track matching our target
+        caps = None
+        for key in ["orig", f"{lang}-orig", lang, "ru-orig", "ru", "en-orig", "en"]:
+            if key in subtitles:
+                caps = subtitles[key]
+                break
+            if key in auto:
+                caps = auto[key]
+                break
+
+        # Fall back to any 'orig' string match if specific codes were missing
+        if not caps:
+            all_tracks = {**auto, **subtitles}
+            orig_key = next((k for k in all_tracks.keys() if "orig" in k), None)
+            if orig_key:
+                caps = all_tracks[orig_key]
+            else:
+                caps = next(iter(subtitles.values()), None) or next(iter(auto.values()), None)
 
         if not caps:
             raise RuntimeError(f"No captions found for video {video_id}")
