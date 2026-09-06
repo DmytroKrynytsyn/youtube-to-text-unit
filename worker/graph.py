@@ -136,7 +136,7 @@ Raw transcript:
 ---
 
 Your task is to extract all the information from this transcript and present it as a single coherent, structured,
-semi-academic essay.
+storytelled essay.
 Respond clearly, in simple words, avoid long/complex constructions
 Respond in the same language as the transcript ({lang}).
 
@@ -155,6 +155,8 @@ Crystallize, do not generalize.
 
 If the transcript mentions some list of things, like "top 5 of methods" or "10 tools for..." - make sure the list of the items is included in the answer.
 
+**Main story**
+
 **Conclusion** (2-3 sentences)
 Summarize the main takeaway and its significance.
 
@@ -165,7 +167,7 @@ Rules:
 - Do not invent anything not present in the transcript
 - Do not pad with filler phrases
 - Preserve all specific facts, numbers, names, and examples
-- Total response must be under 2000 characters — be dense, not verbose
+- Total response must be dense, not verbose
 - Use plain text formatting with ** for bold headers"""
 
 
