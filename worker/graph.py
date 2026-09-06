@@ -27,7 +27,7 @@ youtube_task_duration_seconds = Histogram(
 EXTERNAL_ESSAY_PROMPT_TEMPLATE = """Here is a raw, auto-generated YouTube video transcript. It has not been cleaned up and may
 contain punctuation, casing, and ASR/caption errors, filler words, repeated words, and false starts.
 
-Title: {title}
+Title (deduct from text)
 URL: {url}
 
 Raw transcript:
