@@ -1,5 +1,6 @@
 import json
 import asyncio
+import random
 from urllib.parse import urlparse, parse_qs
 import urllib.request
 import yt_dlp
@@ -113,9 +114,9 @@ async def build_transcript_context(url: str) -> tuple[str, str, str]:
 
     video_id = extract_video_id(url)
     info = await loop.run_in_executor(None, _extract_info, url)
-    await asyncio.sleep(120)  # space out the yt-dlp info call and the caption download to ease YouTube-side rate limiting
+    await asyncio.sleep(random.uniform(100, 200))  # space out the yt-dlp info call and the caption download to ease YouTube-side rate limiting
     title, lang = _parse_video_info(info, url)
-    await asyncio.sleep(120)  # space out the yt-dlp info call and the caption download to ease YouTube-side rate limiting
+    await asyncio.sleep(random.uniform(100, 200))  # space out the yt-dlp info call and the caption download to ease YouTube-side rate limiting
     transcript = await loop.run_in_executor(None, _parse_transcript, info, video_id, lang)
 
     return title, lang, transcript
