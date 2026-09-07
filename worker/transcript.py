@@ -58,7 +58,7 @@ def _parse_transcript(info: dict | None, video_id: str, lang: str) -> str:
 
         # Priority fallback check to find any valid native language track matching our target
         caps = None
-        for key in ["orig", f"{lang}-orig", lang, "ru-orig", "ru", "en-orig", "en"]:
+        for key in ["en-orig", "en", "orig", "ru-orig", "ru", f"{lang}-orig", lang]:
             if key in subtitles:
                 caps = subtitles[key]
                 break
