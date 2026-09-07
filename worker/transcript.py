@@ -113,6 +113,7 @@ async def build_transcript_context(url: str) -> tuple[str, str, str]:
 
     video_id = extract_video_id(url)
     info = await loop.run_in_executor(None, _extract_info, url)
+    await asyncio.sleep(120)  # space out the yt-dlp info call and the caption download to ease YouTube-side rate limiting
     title, lang = _parse_video_info(info, url)
     await asyncio.sleep(120)  # space out the yt-dlp info call and the caption download to ease YouTube-side rate limiting
     transcript = await loop.run_in_executor(None, _parse_transcript, info, video_id, lang)
